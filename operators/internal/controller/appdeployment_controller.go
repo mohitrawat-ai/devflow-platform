@@ -47,9 +47,21 @@ type AppDeploymentReconciler struct {
 // For more details, check Reconcile and its Result here:
 // - https://pkg.go.dev/sigs.k8s.io/controller-runtime@v0.21.0/pkg/reconcile
 func (r *AppDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	_ = logf.FromContext(ctx)
+	log = logf.FromContext(ctx)
 
 	// TODO(user): your logic here
+	log.Info("Reconciling AppDeployment : ", req.NamespacedName)
+
+	// Fetch the AppDeployment instance
+	var appDeployment appsv1.AppDeployment
+	if err := r.Get(ctx, req.NamespacedName, &appDeployment); err != nil {
+		log.Error(err, "unable to fetch AppDeployment")
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	
+	// ADD THIS LOG:
+	log.Info("Found AppDeployment", "name", appDeployment.Name, "image", appDeployment.Spec.Image)
+	
 
 	return ctrl.Result{}, nil
 }
