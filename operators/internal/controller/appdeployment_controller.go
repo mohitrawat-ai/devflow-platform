@@ -43,6 +43,15 @@ func (r *AppDeploymentReconciler) createDeployment(ctx context.Context, appDeplo
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      appDeployment.Name + "-deployment",
 			Namespace: appDeployment.Namespace,
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: appDeployment.APIVersion,
+					Kind:       appDeployment.Kind,
+					Name:       appDeployment.Name,
+					UID:        appDeployment.UID,
+					Controller: &[]bool{true}[0],
+				},
+			},
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: &[]int32{1}[0],
