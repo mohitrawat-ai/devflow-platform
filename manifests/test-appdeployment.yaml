@@ -1,0 +1,6 @@
+apiVersion: apps.devflow.io/v1
+kind: AppDeployment
+metadata:
+  name: my-test-app
+spec:
+  image: "nginx:latest"

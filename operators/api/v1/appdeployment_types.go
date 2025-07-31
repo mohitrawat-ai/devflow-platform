@@ -30,6 +30,7 @@ type AppDeploymentSpec struct {
 
 	// Foo is an example field of AppDeployment. Edit appdeployment_types.go to remove/update
 	Foo string `json:"foo,omitempty"`
+	Image string `json:"image,omitempty"`
 }
 
 // AppDeploymentStatus defines the observed state of AppDeployment.
