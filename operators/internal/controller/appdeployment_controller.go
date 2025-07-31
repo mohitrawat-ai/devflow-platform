@@ -25,12 +25,44 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
 	appsv1 "github.com/mohitrawat-ai/devflow-platform/operators/api/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 // AppDeploymentReconciler reconciles a AppDeployment object
 type AppDeploymentReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
+}
+
+func (r *AppDeploymentReconciler) createDeployment(ctx context.Context, appDeployment *appsv1.AppDeployment) error {
+    log := logf.FromContext(ctx)
+    
+    deployment := &appsv1.Deployment{
+        ObjectMeta: metav1.ObjectMeta{
+            Name:      appDeployment.Name + "-deployment",
+            Namespace: appDeployment.Namespace,
+        },
+        Spec: appsv1.DeploymentSpec{
+            Replicas: &[]int32{1}[0],
+            Selector: &metav1.LabelSelector{
+                MatchLabels: map[string]string{"app": appDeployment.Name},
+            },
+            Template: corev1.PodTemplateSpec{
+                ObjectMeta: metav1.ObjectMeta{
+                    Labels: map[string]string{"app": appDeployment.Name},
+                },
+                Spec: corev1.PodSpec{
+                    Containers: []corev1.Container{{
+                        Name:  appDeployment.Name,
+                        Image: appDeployment.Spec.Image,
+                    }},
+                },
+            },
+        },
+    }
+    
+    log.Info("Creating deployment", "name", deployment.Name)
+    return r.Create(ctx, deployment)
 }
 
 // +kubebuilder:rbac:groups=apps.devflow.io,resources=appdeployments,verbs=get;list;watch;create;update;patch;delete
@@ -58,6 +90,12 @@ func (r *AppDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Error(err, "unable to fetch AppDeployment")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+	// CREATE THE DEPLOYMENT
+    if err := r.createDeployment(ctx, &appDeployment); err != nil {
+        log.Error(err, "Failed to create deployment")
+        return ctrl.Result{}, err
+    }
 	
 	// ADD THIS LOG:
 	log.Info("Found AppDeployment", "name", appDeployment.Name, "image", appDeployment.Spec.Image)
