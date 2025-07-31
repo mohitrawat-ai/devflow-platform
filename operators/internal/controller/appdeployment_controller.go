@@ -24,7 +24,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 
-	appsv1 "github.com/mohitrawat-ai/devflow-platform/operators/api/v1"
+	appsv1alpha1 "github.com/mohitrawat-ai/devflow-platform/operators/api/v1"
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -34,35 +36,35 @@ type AppDeploymentReconciler struct {
 	Scheme *runtime.Scheme
 }
 
-func (r *AppDeploymentReconciler) createDeployment(ctx context.Context, appDeployment *appsv1.AppDeployment) error {
-    log := logf.FromContext(ctx)
-    
-    deployment := &appsv1.Deployment{
-        ObjectMeta: metav1.ObjectMeta{
-            Name:      appDeployment.Name + "-deployment",
-            Namespace: appDeployment.Namespace,
-        },
-        Spec: appsv1.DeploymentSpec{
-            Replicas: &[]int32{1}[0],
-            Selector: &metav1.LabelSelector{
-                MatchLabels: map[string]string{"app": appDeployment.Name},
-            },
-            Template: corev1.PodTemplateSpec{
-                ObjectMeta: metav1.ObjectMeta{
-                    Labels: map[string]string{"app": appDeployment.Name},
-                },
-                Spec: corev1.PodSpec{
-                    Containers: []corev1.Container{{
-                        Name:  appDeployment.Name,
-                        Image: appDeployment.Spec.Image,
-                    }},
-                },
-            },
-        },
-    }
-    
-    log.Info("Creating deployment", "name", deployment.Name)
-    return r.Create(ctx, deployment)
+func (r *AppDeploymentReconciler) createDeployment(ctx context.Context, appDeployment *appsv1alpha1.AppDeployment) error {
+	log := logf.FromContext(ctx)
+
+	deployment := &appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      appDeployment.Name + "-deployment",
+			Namespace: appDeployment.Namespace,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &[]int32{1}[0],
+			Selector: &metav1.LabelSelector{
+				MatchLabels: map[string]string{"app": appDeployment.Name},
+			},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Labels: map[string]string{"app": appDeployment.Name},
+				},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:  appDeployment.Name,
+						Image: appDeployment.Spec.Image,
+					}},
+				},
+			},
+		},
+	}
+
+	log.Info("Creating deployment", "name", deployment.Name)
+	return r.Create(ctx, deployment)
 }
 
 // +kubebuilder:rbac:groups=apps.devflow.io,resources=appdeployments,verbs=get;list;watch;create;update;patch;delete
@@ -82,24 +84,23 @@ func (r *AppDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	log := logf.FromContext(ctx)
 
 	// TODO(user): your logic here
-    log.Info("Starting reconcile", "AppDeployment", req.NamespacedName)
+	log.Info("Starting reconcile", "AppDeployment", req.NamespacedName)
 
 	// Fetch the AppDeployment instance
-	var appDeployment appsv1.AppDeployment
+	var appDeployment appsv1alpha1.AppDeployment
 	if err := r.Get(ctx, req.NamespacedName, &appDeployment); err != nil {
 		log.Error(err, "unable to fetch AppDeployment")
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// CREATE THE DEPLOYMENT
-    if err := r.createDeployment(ctx, &appDeployment); err != nil {
-        log.Error(err, "Failed to create deployment")
-        return ctrl.Result{}, err
-    }
-	
+	if err := r.createDeployment(ctx, &appDeployment); err != nil {
+		log.Error(err, "Failed to create deployment")
+		return ctrl.Result{}, err
+	}
+
 	// ADD THIS LOG:
 	log.Info("Found AppDeployment", "name", appDeployment.Name, "image", appDeployment.Spec.Image)
-	
 
 	return ctrl.Result{}, nil
 }
@@ -107,7 +108,7 @@ func (r *AppDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 // SetupWithManager sets up the controller with the Manager.
 func (r *AppDeploymentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&appsv1.AppDeployment{}).
+		For(&appsv1alpha1.AppDeployment{}).
 		Named("appdeployment").
 		Complete(r)
 }
