@@ -36,6 +36,39 @@ type AppDeploymentReconciler struct {
 	Scheme *runtime.Scheme
 }
 
+func (r *AppDeploymentReconciler) createService(ctx context.Context, appDeployment *appsv1alpha1.AppDeployment) error {
+    log := logf.FromContext(ctx)
+    
+    service := &corev1.Service{
+        ObjectMeta: metav1.ObjectMeta{
+            Name:      appDeployment.Name + "-service",
+            Namespace: appDeployment.Namespace,
+            OwnerReferences: []metav1.OwnerReference{
+                {
+                    APIVersion: appDeployment.APIVersion,
+                    Kind:       appDeployment.Kind,
+                    Name:       appDeployment.Name,
+                    UID:        appDeployment.UID,
+                    Controller: &[]bool{true}[0],
+                },
+            },
+        },
+        Spec: corev1.ServiceSpec{
+            Selector: map[string]string{"app": appDeployment.Name},
+            Ports: []corev1.ServicePort{
+                {
+                    Port:     80,
+                    Protocol: corev1.ProtocolTCP,
+                },
+            },
+            Type: corev1.ServiceTypeClusterIP,
+        },
+    }
+    
+    log.Info("Creating service", "name", service.Name)
+    return r.Create(ctx, service)
+}
+
 func (r *AppDeploymentReconciler) createDeployment(ctx context.Context, appDeployment *appsv1alpha1.AppDeployment) error {
 	log := logf.FromContext(ctx)
 
@@ -107,6 +140,12 @@ func (r *AppDeploymentReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 		log.Error(err, "Failed to create deployment")
 		return ctrl.Result{}, err
 	}
+
+	 // Create service
+	if err := r.createService(ctx, &appDeployment); err != nil {
+        log.Error(err, "Failed to create service")
+        return ctrl.Result{}, err
+    }
 
 	// ADD THIS LOG:
 	log.Info("Found AppDeployment", "name", appDeployment.Name, "image", appDeployment.Spec.Image)
