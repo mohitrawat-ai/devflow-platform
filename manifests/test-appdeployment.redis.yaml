@@ -1,6 +1,0 @@
-apiVersion: apps.devflow.io/v1
-kind: AppDeployment
-metadata:
-  name: my-test-app-redis
-spec:
-  image: "redis:latest"
